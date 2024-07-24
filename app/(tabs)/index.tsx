@@ -1,70 +1,136 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { Image, StyleSheet, View, Text, TextInput, ScrollView, FlatList, Pressable } from 'react-native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import FavouritesScreen from './FavouritesScreen';
+import DetailsScreen from './DetailsScreen';
+import { NavigationContainer } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/FontAwesome'; 
+import { useState, useEffect } from 'react';
+import { Datafetched } from './DataFetching';
+import {FavouritesProvider} from './FavouritesContext';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const Stack = createNativeStackNavigator();
 
-export default function HomeScreen() {
+export function HomeScreen({navigation}) {
+  const [movies, setMovies] = useState([]);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const getMovies = async () => {
+      try {
+        const topRatedMovies = await Datafetched();
+        setMovies(topRatedMovies);
+      } catch (err) {
+        console.error('Failed to fetch movies:', err);
+      }
+    };
+
+    getMovies();
+  }, []);
+  const datafiltered=movies.filter(movie=>{
+    return movie.title.toLowerCase().includes(search.toLocaleLowerCase());
+  }
+  )
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <ScrollView style={styles.container}>
+      <Pressable onPress={()=>{navigation.navigate("Favourites")}}>
+      <View style={styles.header}>
+        <Icon name="heart" size={25} color="red" style={styles.heartIcon} />
+      </View>
+      </Pressable>
+      <View style={styles.inputContainer}>
+        <Icon name="search" size={20} color="#ccc" style={styles.icon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Search"  onChangeText={setSearch}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+      <View style={styles.list}>
+      <FlatList
+       key={'_'} 
+       numColumns={2}
+        data={datafiltered}
+        renderItem={({ item }) => (
+          <View style={styles.movieItem}>
+            <Pressable onPress={()=>{navigation.navigate("Details",{id:item.id})}}>
+            <Image
+              style={styles.image}
+              source={{ uri: `https://image.tmdb.org/t/p/w200${item.poster_path}` }}
+            />
+            </Pressable>
+            <Text style={styles.title}>{item.title}</Text>
+            <Text>{item.vote_average}</Text>
+          </View>
+        )}
+        keyExtractor={item => item.id.toString()}
+      />
+      </View>
+    </ScrollView>
   );
 }
-
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    padding: 30,
+    backgroundColor: '#fff',
+  },
+  header: {
+    alignItems: 'flex-end',
+    marginBottom: 20,
+  },
+  heartIcon: {
+    marginRight: 10,
+  },
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    borderWidth: 2,
+    borderColor: 'black',
+    borderRadius: 30,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    marginBottom: 20,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  icon: {
+    marginLeft: 5,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  title: {
+    marginTop:10,
+    marginBottom:5,
+    width: 150,
+    flexWrap: 'wrap',
+  },
+
+  input: {
+    flex: 1,
+    marginLeft: 10,
+    padding: 10,
+  },
+  movieItem: {
+    marginBottom: 10,
+    width:200,
+    
+  },
+  image: {
+    width: 150,
+    height: 150,
+    resizeMode: 'cover',
+    borderWidth:2,
+    borderRadius:10,
+    borderColor:'black'
   },
 });
+
+export default function App(){
+  return (
+    <FavouritesProvider>
+    <NavigationContainer independent={true}>
+      <Stack.Navigator initialRouteName="Home">
+        <Stack.Screen name="Home" options={{title:"Movies"}} component={HomeScreen} />
+        <Stack.Screen name="Favourites" component={FavouritesScreen} />
+        <Stack.Screen name="Details" component={DetailsScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+    </FavouritesProvider>
+  );
+}
