@@ -3,25 +3,32 @@ import { View, Text, StyleSheet, Image, Pressable } from "react-native";
 import { movieDetails } from "./DataFetching";
 import { Icon } from '@rneui/themed';   
 import { FavouritesContext } from "./FavouritesContext";
+
 export default function DetailsScreen({ route, navigation }) {
   const [movie, setMovie] = useState({});
-  const {favourites,addFavourites,deleteFavourites}=useContext(FavouritesContext);
+  const { favourites, addFavourites, deleteFavourites } = useContext(FavouritesContext);
   const { id } = route.params;
-  const [liked,setLiked]=useState(favourites.some(fav=>fav.id===id));//some:method returns true if any iteration returns true 
+  const [liked, setLiked] = useState(false);
 
   useEffect(() => {
     const movieFetch = async () => {
       try {
         const result = await movieDetails(id);
-        setLiked(favourites.some(fav => fav.id === result.id));
         setMovie(result);
-        console.log(result);
+
+        // Ensure favourites is an array before using it
+        if (Array.isArray(favourites)) {
+          setLiked(favourites.some(fav => fav.id === result.id));
+        } else {
+          setLiked(false); // Default to false if favourites is not an array
+        }
       } catch (e) {
         console.log("error fetching data", e);
       }
     };
     movieFetch();
-  }, [id,favourites]);
+  }, [id, favourites]);
+
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -31,37 +38,37 @@ export default function DetailsScreen({ route, navigation }) {
           resizeMode="cover"
         />
         
-       
         <View style={styles.overlay}>
-            <View style={{marginLeft:350 ,flexDirection:'row'}}>
-                {
-                   liked ?
-                   <Pressable onPress={()=>{
-                    deleteFavourites(movie.id);
-                    setLiked(false)}}  >
-                    <Icon name="heart" type='font-awesome' color='#ff0000' ></Icon>
-                    
-                    </Pressable>
-                    :
-                    <Pressable onPress={()=>{
-                      addFavourites(movie);
-                      setLiked(true)}}>
-                    <Icon name="heart-o" type='font-awesome' color='#ff0000' ></Icon>
-                    </Pressable>
-                }
-        </View>
+          <View style={{ marginLeft: 350, flexDirection: 'row' }}>
+            {
+              liked ?
+                <Pressable onPress={() => {
+                  deleteFavourites(movie.id);
+                  setLiked(false);
+                }}>
+                  <Icon name="heart" type='font-awesome' color='#ff0000' />
+                </Pressable>
+                :
+                <Pressable onPress={() => {
+                  addFavourites(movie);
+                  setLiked(true);
+                }}>
+                  <Icon name="heart-o" type='font-awesome' color='#ff0000' />
+                </Pressable>
+            }
+          </View>
           <View style={styles.textContainer}>
             <View style={styles.header}>
               <Text style={styles.title}>{movie.title}</Text>
               <Text style={styles.rating}>{movie.vote_average}</Text>
             </View>
             <View style={styles.details}>
-              <Text style={styles.detailText}>Duration: {movie.runtime}mins</Text>
+              <Text style={styles.detailText}>Duration: {movie.runtime} mins</Text>
               <Text style={styles.detailText}>Release Date: {movie.release_date}</Text>
             </View>
             <View style={styles.genres}>
               {movie.genres?.map((genre) => (
-                  <View key={genre.id} style={styles.genreBox}>
+                <View key={genre.id} style={styles.genreBox}>
                   <Text style={styles.genreText}>{genre.name}</Text>
                 </View>
               ))}
@@ -70,10 +77,10 @@ export default function DetailsScreen({ route, navigation }) {
         </View>
       </View>
       <View style={styles.overviewContainer}>
-      <Text style={styles.overviewTitle}>Overview</Text>
-      <View style={{borderWidth:1,height:'auto',padding:10,marginTop:20}}>
-        <Text style={{fontSize:16}}>{movie.overview}</Text>
-      </View>
+        <Text style={styles.overviewTitle}>Overview</Text>
+        <View style={{ borderWidth: 1, height: 'auto', padding: 10, marginTop: 20 }}>
+          <Text style={{ fontSize: 16 }}>{movie.overview}</Text>
+        </View>
       </View>
     </View>
   );
@@ -102,7 +109,6 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   textContainer: {
-  
     padding: 10,
     borderRadius: 10,
   },
@@ -148,11 +154,10 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
   },
-  overviewContainer:{
-    padding:20,
-
+  overviewContainer: {
+    padding: 20,
   },
-  overviewTitle:{
-    fontSize:20
+  overviewTitle: {
+    fontSize: 20,
   }
 });
